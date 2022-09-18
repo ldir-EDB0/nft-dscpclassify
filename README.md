@@ -36,7 +36,7 @@ The service will respect DSCP classification stored by an external service in a 
 To install the dscpclassify service via command line you can use the following:
 
 ```
-repo="https://raw.githubusercontent.com/jeverley/dscpclassify/main"
+repo="https://raw.githubusercontent.com/ldir-EDB0/dscpclassify/main"
 mkdir -p "/etc/dscpclassify.d"
 if [ ! -f "/etc/config/dscpclassify" ]; then
     wget "$repo/etc/config/dscpclassify" -O "/etc/config/dscpclassify"
@@ -62,7 +62,7 @@ Ingress DSCP marking requires the SQM queue setup script 'layer_cake_ct.qos' and
 To install these via command line you can use the following:
 
 ```
-repo="https://raw.githubusercontent.com/jeverley/dscpclassify/main"
+repo="https://raw.githubusercontent.com/ldir-EDB0/dscpclassify/main"
 opkg update
 opkg install kmod-sched-ctinfo
 wget "$repo/usr/lib/sqm/layer_cake_ct.qos" -O "/usr/lib/sqm/layer_cake_ct.qos"
