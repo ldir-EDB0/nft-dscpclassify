@@ -38,10 +38,10 @@ mkdir -p "/etc/dscpclassify.d"
 rm -f /etc/dscpclassify.d/main.nft
 rm -f /etc/hotplug.d/iface/21-dscpclassify
 rm -f /etc/init.d/dscpclassify
-wget https://raw.githubusercontent.com/jeverley/dscpclassify/main/etc/config/dscpclassify -P /etc/config
-wget https://raw.githubusercontent.com/jeverley/dscpclassify/main/etc/dscpclassify.d/main.nft -P /etc/dscpclassify.d
-wget https://raw.githubusercontent.com/jeverley/dscpclassify/main/etc/hotplug.d/iface/21-dscpclassify -P /etc/hotplug.d/iface
-wget https://raw.githubusercontent.com/jeverley/dscpclassify/main/etc/init.d/dscpclassify -P /etc/init.d
+wget https://raw.githubusercontent.com/ldir-EDB0/dscpclassify/main/etc/config/dscpclassify -P /etc/config
+wget https://raw.githubusercontent.com/ldir-EDB0/dscpclassify/main/etc/dscpclassify.d/main.nft -P /etc/dscpclassify.d
+wget https://raw.githubusercontent.com/ldir-EDB0/dscpclassify/main/etc/hotplug.d/iface/21-dscpclassify -P /etc/hotplug.d/iface
+wget https://raw.githubusercontent.com/ldir-EDB0/dscpclassify/main/etc/init.d/dscpclassify -P /etc/init.d
 chmod +x "/etc/init.d/dscpclassify"
 /etc/init.d/dscpclassify enable
 /etc/init.d/dscpclassify start
@@ -56,8 +56,8 @@ opkg update
 opkg install kmod-sched-ctinfo
 rm -f /usr/lib/sqm/layer_cake_ct.qos
 rm -f /usr/lib/sqm/layer_cake_ct.qos.help
-wget https://raw.githubusercontent.com/jeverley/dscpclassify/main/usr/lib/sqm/layer_cake_ct.qos -P /usr/lib/sqm
-wget https://raw.githubusercontent.com/jeverley/dscpclassify/main/usr/lib/sqm/layer_cake_ct.qos.help -P /usr/lib/sqm
+wget https://raw.githubusercontent.com/ldir-EDB0/dscpclassify/main/usr/lib/sqm/layer_cake_ct.qos -P /usr/lib/sqm
+wget https://raw.githubusercontent.com/ldir-EDB0/dscpclassify/main/usr/lib/sqm/layer_cake_ct.qos.help -P /usr/lib/sqm
 ```
 ## Service configuration
 The user rules in '/etc/config/dscpclassify' use the same syntax as OpenWrt's firewall config, the 'class' option is used to specified the desired DSCP.
