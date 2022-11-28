@@ -1,4 +1,6 @@
 #!/bin/sh /etc/rc.common
+# exceptions for shellcheck
+# shellcheck disable=1091,2034,3043,3057,3060
 
 START=20
 USE_PROCD=1
@@ -36,7 +38,7 @@ config_get_uint() {
 }
 
 mklist() {
-	echo "$*" | tr '\n' ' ' | sed -e 's/^\s*//' -e 's/\s*$//' -e 's/\([^.]\)\s\+\([^.]\)/\1, \2/g'
+	echo "$*" | tr '\n!' ' ' | sed -e 's/^\s*//' -e 's/\s*$//' -e 's/\([^.]\)\s\+\([^.]\)/\1, \2/g'
 }
 
 check_class() {
@@ -72,8 +74,12 @@ check_family() {
 
 check_port() {
 	for i in $1; do
-		echo "$i" | grep -q -E -e "^[1-9][0-9]*(-[1-9][0-9]*)?$" || return 1
+		echo "$i" | grep -q -E -e "^!{0,1}[1-9][0-9]*(-[1-9][0-9]*)?$" || return 1
 	done
+
+	if echo "$1" | grep -q -E -e "^!.*$" ; then 
+		negateport="!=" ; 
+	fi
 }
 
 check_port_proto() {
@@ -87,20 +93,27 @@ check_port_proto() {
 
 sort_ip() {
 	for i in $1; do
-		echo "$i" | grep -q -E -e "^(([2]([0-4][0-9]|[5][0-5])|[0-1]?[0-9]?[0-9])[.]){3}(([2]([0-4][0-9]|[5][0-5])|[0-1]?[0-9]?[0-9]))(\/([0-9]|[12][0-9]|3[0-2]))?$" && {
-			ipv4="$ipv4 $i"
+		echo "$i" | grep -q -E -e "^!{0,1}(([2]([0-4][0-9]|[5][0-5])|[0-1]?[0-9]?[0-9])[.]){3}(([2]([0-4][0-9]|[5][0-5])|[0-1]?[0-9]?[0-9]))(\/([0-9]|[12][0-9]|3[0-2]))?$" && {
+#			ipv4="$ipv4 $i"
+			ipv4="$ipv4 $(echo "$i" | tr '!' ' ')"
 			continue
 		}
-		echo "$i" | grep -q -E -e "^(([a-fA-F0-9]{1,4}|):){1,7}([a-fA-F0-9]{1,4}|:)$" && {
-			ipv6="$ipv6 $i"
+		echo "$i" | grep -q -E -e "^!{0,1}(([a-fA-F0-9]{1,4}|):){1,7}([a-fA-F0-9]{1,4}|:)$" && {
+#			ipv6="$ipv6 $i"
+			ipv6="$ipv6 $(echo "$i" | tr '!' ' ')"
 			continue
 		}
-		echo "$i" | grep -q -E -e "^@\w+$" && {
-			ipset="$ipset $i"
+		echo "$i" | grep -q -E -e "^!{0,1}@\w+$" && {
+#			ipset="$ipset $i"
+			ipset="$ipset $(echo "$i" | tr '!' ' ')"
 			continue
 		}
 		return 1
 	done
+
+	if echo "$1" | grep -q -E -e "^!.*$" ; then 
+		negateaddr="!=" ; 
+	fi
 }
 
 l4proto() {
@@ -148,6 +161,8 @@ iifzone() {
 }
 
 dport() {
+	local negateport
+
 	[ -n "$1" ] || return 0
 
 	check_port "$1" || {
@@ -159,10 +174,12 @@ dport() {
 		return 1
 	}
 
-	dport="th dport { $(mklist "$1") }"
+	dport="th dport ${negateport:+$negateport} { $(mklist "$1") }"
 }
 
 sport() {
+	local negateport
+
 	[ -n "$1" ] || return 0
 
 	check_port "$1" || {
@@ -174,11 +191,11 @@ sport() {
 		return 1
 	}
 
-	sport="th sport { $(mklist "$1") }"
+	sport="th sport ${negateport:+$negateport} { $(mklist "$1") }"
 }
 
 daddr() {
-	local ipv4 ipv6 ipset
+	local ipv4 ipv6 ipset negateaddr
 
 	[ -n "$1" ] || return 0
 
@@ -203,18 +220,18 @@ daddr() {
 		return 1
 	fi
 
-	[ -n "$ipv4" ] && daddr="ip daddr { $(mklist "$ipv4") }"
-	[ -n "$ipv6" ] && daddr6="ip6 daddr { $(mklist "$ipv6") }"
+	[ -n "$ipv4" ] && daddr="ip daddr ${negateaddr:+$negateaddr} { $(mklist "$ipv4") }"
+	[ -n "$ipv6" ] && daddr6="ip6 daddr ${negateaddr:+$negateaddr} { $(mklist "$ipv6") }"
 
 	[ -n "$ipset" ] || return 0
 	case $2 in
-	ipv4) daddr="ip daddr $ipset" ;;
-	ipv6) daddr6="ip6 daddr $ipset" ;;
+	ipv4) daddr="ip daddr ${negateaddr:+$negateaddr} $ipset" ;;
+	ipv6) daddr6="ip6 daddr ${negateaddr:+$negateaddr} $ipset" ;;
 	esac
 }
 
 saddr() {
-	local ipv4 ipv6 ipset
+	local ipv4 ipv6 ipset negateaddr
 
 	[ -n "$1" ] || return 0
 
@@ -239,13 +256,13 @@ saddr() {
 		return 1
 	fi
 
-	[ -n "$ipv4" ] && daddr="ip saddr { $(mklist "$ipv4") }"
-	[ -n "$ipv6" ] && daddr6="ip6 saddr { $(mklist "$ipv6") }"
+	[ -n "$ipv4" ] && daddr="ip saddr ${negateaddr:+$negateaddr} { $(mklist "$ipv4") }"
+	[ -n "$ipv6" ] && daddr6="ip6 saddr ${negateaddr:+$negateaddr} { $(mklist "$ipv6") }"
 
 	[ -n "$ipset" ] || return 0
 	case $2 in
-	ipv4) daddr="ip saddr $ipset" ;;
-	ipv6) daddr6="ip6 saddr $ipset" ;;
+	ipv4) daddr="ip saddr ${negateaddr:+$negateaddr} $ipset" ;;
+	ipv6) daddr6="ip6 saddr ${negateaddr:+$negateaddr} $ipset" ;;
 	esac
 }
 
@@ -340,13 +357,14 @@ create_user_set() {
 	[ "$constant" = 1 ] && flags="$flags constant"
 	[ "$interval" = 1 ] && flags="$flags interval"
 	[ -n "$flags" ] && flags="$(mklist "$flags")"
+	[ -n "$flags" ] && [ "$interval" = 1 ] && flags="$flags; auto-merge"
 
 	post_include "add set inet dscpclassify $name { type $type; ${timeout:+timeout $timeout;} ${flags:+flags $flags;} }"
 	[ -n "$element" ] && post_include "add element inet dscpclassify $name { $(mklist "$element") }"
 }
 
 create_user_rule() {
-	local enabled family proto direction device dest dest_ip dest_port src src_ip src_port class name
+	local enabled family proto direction device dest dest_ip dest_port src src_ip src_port class name counter
 	local nfproto l4proto oifname daddr daddr6 dport iifname saddr saddr6 sport verdict comment
 
 	config_get_bool enabled "$1" enabled
@@ -364,6 +382,7 @@ create_user_rule() {
 	config_get src_port "$1" src_port
 	config_get class "$1" class
 	config_get name "$1" name
+	config_get_bool counter "$1" counter
 
 	nfproto "$family" || return 1
 	l4proto "$proto" || return 1
@@ -374,18 +393,19 @@ create_user_rule() {
 	saddr "$src_ip" "$family" || return 1
 	sport "$src_port" "$proto" || return 1
 	device "$device" "$direction" || return 1
+	[ "$counter" = 1 ] && counter="counter" || counter=""
 	verdict "$class" || return 1
 	comment "$name" || return 1
 
 	[ -z "$daddr$saddr$daddr6$saddr6" ] && {
-		post_include "insert rule inet dscpclassify static_classify $nfproto $l4proto $oifname $dport $iifname $sport $verdict $comment"
+		post_include "insert rule inet dscpclassify static_classify $nfproto $l4proto $oifname $dport $iifname $sport $counter $verdict $comment"
 		return 0
 	}
 	[ -n "$daddr$saddr" ] && {
-		post_include "insert rule inet dscpclassify static_classify $nfproto $l4proto $oifname $daddr $dport $iifname $saddr $sport $verdict $comment"
+		post_include "insert rule inet dscpclassify static_classify $nfproto $l4proto $oifname $daddr $dport $iifname $saddr $sport $counter $verdict $comment"
 	}
 	[ -n "$daddr6$saddr6" ] && {
-		post_include "insert rule inet dscpclassify static_classify $nfproto $l4proto $oifname $daddr6 $dport $iifname $saddr6 $sport $verdict $comment"
+		post_include "insert rule inet dscpclassify static_classify $nfproto $l4proto $oifname $daddr6 $dport $iifname $saddr6 $sport $counter $verdict $comment"
 	}
 	return 0
 }
